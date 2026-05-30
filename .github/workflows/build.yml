@@ -79,6 +79,36 @@ jobs:
         run: |
           pyinstaller --name "MarkItDown" --windowed --noconfirm --clean --onefile --collect-all markitdown --collect-all markitdown_converters --collect-all magika --collect-all onnxruntime --collect-data magika --hidden-import webview.platforms.edgechromium markitdown_app.py
 
+      # Smoke test 1: confirm the core dependencies import and MarkItDown
+      # initializes inside a frozen build. Catches missing-module / packaging
+      # failures (the most common .exe breakage) without needing a GUI.
+      - name: Smoke test - dependency import
+        shell: cmd
+        run: |
+          echo import sys > smoke.py
+          echo print("python", sys.version) >> smoke.py
+          echo from markitdown import MarkItDown >> smoke.py
+          echo import webview >> smoke.py
+          echo md = MarkItDown(enable_plugins=False) >> smoke.py
+          echo print("OK: imports and MarkItDown init succeeded") >> smoke.py
+          python smoke.py
+
+      # Smoke test 2: launch the actual .exe briefly. A windowed app won't
+      # exit on its own, so we start it, wait, and confirm the process is
+      # alive (i.e. it didn't crash on startup), then terminate it.
+      - name: Smoke test - launch exe
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist/MarkItDown.exe" -PassThru
+          Start-Sleep -Seconds 15
+          if ($p.HasExited) {
+            Write-Error "App exited early (exit code $($p.ExitCode)) - likely a startup crash."
+            exit 1
+          } else {
+            Write-Host "OK: app still running after 15s - no startup crash."
+            Stop-Process -Id $p.Id -Force
+          }
+
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
