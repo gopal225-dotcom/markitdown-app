@@ -1,0 +1,21 @@
+# Build outputs
+dist/
+build/
+*.dmg
+*.exe
+*.app/
+
+# PyInstaller
+*.spec
+
+# Virtual environments
+build-venv/
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
